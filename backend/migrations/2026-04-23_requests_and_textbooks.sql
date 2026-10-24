@@ -1,0 +1,22 @@
+-- Migration: clarify request routing vs approval audit, and allow multiple textbooks per course.
+-- Target DB: MySQL 8.x
+--
+-- 1) Allow multiple textbook submissions per course (preserves request history)
+--    If you currently have UNIQUE(course_id) on `textbooks`, drop that unique index.
+--    The index name may differ (common names: `course_id`, `course_id_UNIQUE`).
+--    Run ONE of the following that matches your DB:
+--      ALTER TABLE textbooks DROP INDEX course_id;
+--      ALTER TABLE textbooks DROP INDEX course_id_UNIQUE;
+--
+-- 2) Rename request routing column to be explicit
+--    `approved_by` was being used as "who should approve this" (routing), not "who approved".
+--    Rename it to `assigned_hod_id`.
+--    (Adjust INT/BIGINT to match your existing schema.)
+--      ALTER TABLE requests CHANGE COLUMN approved_by assigned_hod_id BIGINT NULL;
+--
+-- 3) Add audit fields for actual approval
+--      ALTER TABLE requests ADD COLUMN approved_by_user_id BIGINT NULL;
+--      ALTER TABLE requests ADD COLUMN approval_date DATETIME NULL;
+--
+-- Optional: you may also want a `rejected_by_user_id` + `rejection_date` if you need auditing for rejections.
+
