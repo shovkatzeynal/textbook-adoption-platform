@@ -1,202 +1,385 @@
-> Recovery update (2026-09-30): use [LOCAL_SETUP.md](LOCAL_SETUP.md) to run the MVP and [PROJECT_RECOVERY_REPORT.md](PROJECT_RECOVERY_REPORT.md) for verified behavior. The specification below is historical. Historical SQL exports are excluded from this repository; do not use them for initialization.
+# MVSU Textbook Adoption Platform
 
-# 📚 Textbook Adoption Form Web Application
+A full-stack web application that digitizes the university textbook adoption workflow across instructors, Heads of Department, and bookstore staff.
 
-## 🔗 Project Resources
-- 📄 [Slides Presentation](https://www.canva.com/design/DAGi7ZeTm1c/mVnG26sxeCXtbX68FLs3YA/edit)
-- 📘 [Full Spec Sheet (Google Docs)](https://docs.google.com/document/d/1p_ne2BhTwww10c8rM2-mE_tNAN3_z3xgyJY8UoO-3oc/edit?tab=t.0)
+The platform centralizes textbook submissions, departmental approvals, rejection feedback, submission history, and bookstore fulfillment in one role-based system.
 
----
+## Live Demo
 
-## 🧾 About This Document
-This is a project spec sheet — a simple document that explains what this app is for, how it works, what it includes, and what we plan to build later. It's written in a way that anyone, even without technical experience, can understand the project's purpose and how everything fits together.
+**Live Demo:** Coming soon
 
----
+## Project Documentation
 
-## ❗ Problem Statement
-This project is a digital solution for simplifying how textbooks are requested and approved at Mississippi Valley State University (MVSU).
 
-It replaces slow, paper-based systems with an easy-to-use web application that works for instructors, department heads, and bookstore staff.
+## Project Resources
 
----
 
-## ✅ Project Summary
-This platform digitizes the textbook adoption process at **Mississippi Valley State University (MVSU)**. It allows:
-- Faculty to manage course textbooks and submit forms
-- Heads of Departments (HoDs) to approve or reject forms with comments
-- Bookstore staff to view approved forms and initiate orders
+| **[Project Presentation](https://docs.google.com/presentation/d/1ChllU2mYl-RszkceHimEuTIwK-hh_tYji-nucKF-5Ps/edit?usp=sharing)** | Problem, product decisions, workflow, architecture, validation | 12 slides |
+| **[Product One-Pager](https://docs.google.com/document/d/10DR53Mjux0YG00x2OVd0eUg5wzNXBI-E3MuHgu12Cwg/edit?usp=sharing)** | Goal, users, workflow, business rules, decisions, tradeoffs | 2 min |
+| **[PM Spec Sheet](https://docs.google.com/document/d/1hvH_k3ETCxrg_UXUUbYzxoaerauhjaOzk0zz_5v_eoM/edit?usp=sharing)** | Requirements, business rules, roadmap, risks, success metrics | 10 min |
+| **[Database Design](https://docs.google.com/document/d/1zjVPVZeJ-llLjCd0SLkXGqUtbRLpTZZUMr9UYNNI7IE/edit?usp=sharing)** | ERD, keys, relationships, constraints, data model | 8 min |
 
-Each role accesses a personalized dashboard. The app uses a **MySQL** backend and a **React + Node.js** stack.
+## Product Goal
 
----
+Create a centralized workflow that allows faculty, department leadership, and bookstore staff to submit, review, approve, and track textbook adoption requests from initial submission through bookstore fulfillment.
 
-## 👥 Core Users & Sample Profiles
-- **Instructor** – _Dr. Smith_, teaches Psychology 101 and submits textbook forms for review.
-- **Head of Department (HoD)** – _Dr. Garner_, oversees faculty submissions, can also submit forms.
-- **Bookstore Staff** – Can view only HoD-approved forms and initiate orders.
+## Problem
 
----
+Textbook adoption can involve multiple stakeholders working across forms, messages, and separate records. This makes it harder to:
 
-## 🎯 User Goals
-- Submit textbook forms digitally (no paper/email)
-- Receive quick and clear feedback from HoDs
+- Track whether a request is Pending, Approved, or Rejected
+- Preserve rejection feedback
+- Route requests to the correct department leadership
+- Give bookstore staff visibility into approved textbooks
+- Maintain historical records of previous submissions
+
+The platform creates one source of truth for the entire workflow.
+
+## User Roles
+
+### Instructor
+
+Instructors can:
+
+- View assigned courses
+- Submit textbook adoption requests
 - Track submission status
-- Provide bookstore with verified, approved forms
-- Streamline textbook procurement
-
----
-
-## 🔑 Key Features
-
-### P0 – Must Have
-- Instructor/HoD signup and login with role-based redirects
-- Assigned course view
-- Textbook form creation & submission
-- HoD approval/rejection with comments
-- Bookstore sees only approved forms
-- Role-based dashboards
-
-### P1 – Important
-- Manual course addition (Instructor, HoD)
-- View previous submissions
 - View rejection feedback
-- One-click order button for Bookstore
+- Access previous submissions
+- Submit updated requests without deleting historical records
 
-### P2 – Future Plans
-- Notifications (e.g., form rejected)
-- Department structure (multiple HoDs)
-- Filter/search/sort in dashboards
-- Integration with registration system (e.g., Argawan Noori’s project)
+### Head of Department
 
-### ❌ Out of Scope
-- Cross-institution integration
-- Real-time collaborative editing
-- Analytics dashboards
+Heads of Department can:
 
----
+- Review requests from instructors in their department
+- Approve or reject requests
+- Provide rejection feedback
+- View departmental submission history
+- Submit textbook requests for courses they teach
+- Confirm and automatically approve their own submissions
 
-## 🏗️ System Architecture & Tech Stack
+### Bookstore
+
+Bookstore staff can:
+
+- View academically approved requests
+- Track fulfillment progress
+- Move requests through ordering stages
+- Preserve completed requests as historical records
+
+## Core Workflow
+
+```text
+Instructor submits textbook request
+        ↓
+Course determines department
+        ↓
+Department determines designated HoD
+        ↓
+HoD reviews request
+   ↙              ↘
+Rejected         Approved
+   ↓                ↓
+Feedback         Bookstore
+                    ↓
+             Ready to be ordered
+                    ↓
+                 Ordered
+                    ↓
+                 Arrived
+                    ↓
+             Ready to pick up
+                    ↓
+               Picked up
+                    ↓
+                 Archive
+```
+
+The designated HoD is captured on the request when the submission is created. This preserves the original reviewer assignment even if department leadership changes later.
+
+## Key Product Decisions
+
+### Department-Based Routing
+
+The department is the source of truth for approval routing.
+
+```text
+Course → Department → Designated HoD
+```
+
+This avoids maintaining duplicate Instructor-to-HoD relationships throughout the system.
+
+### Assignment vs. Approval
+
+The platform separates:
+
+- `assigned_hod_id` — the reviewer assigned when the request is submitted
+- `approved_by` — the user who actually approves the request
+
+This creates clearer workflow history and auditability.
+
+### History Over Mutation
+
+Corrected or repeated submissions create new requests rather than overwriting older ones.
+
+Each submission preserves its own textbook snapshot so historical textbook information remains unchanged.
+
+### Forward-Only Fulfillment
+
+Bookstore requests move through a controlled workflow:
+
+```text
+Approved
+→ Ready to be ordered
+→ Ordered
+→ Arrived
+→ Ready to pick up
+→ Picked up
+→ Archive
+```
+
+Completed requests are archived rather than deleted.
+
+## Tech Stack
 
 ### Frontend
-- **React.js** – Interface
-- **React Router** – Navigation
-- **localStorage** – Temporary session storage
+
+- React
+- JavaScript
+- React Router
+- Axios
 
 ### Backend
-- **Node.js + Express** – API and server
+
+- Node.js
+- Express
+- REST APIs
+- JWT authentication
+- bcrypt password hashing
 
 ### Database
-- **MySQL** – Data storage
-- **mysql2** – MySQL connector
 
-### Helpers & Security
-- **bcrypt** – Password hashing
-- **CORS + body-parser** – API communication
-- **express-rate-limit** – Rate-limiting for backend
+- MySQL
+- Relational database design
+- Transactional request creation
 
----
+### Testing
 
-## 🧪 UX Walkthrough
-- **Login/Signup**: Select role → Redirect to dashboard
-- **Instructor Dashboard**: View courses/forms, add/edit, view feedback
-- **HoD Dashboard**: View all departmental submissions, approve/reject, submit own forms
-- **Bookstore Page**: View approved forms, click to place orders
+The project includes:
 
----
+- Backend tests
+- Frontend tests
+- HTTP/MySQL integration tests
+- End-to-end browser testing
 
-## 🔧 Engineering Breakdown
+Testing covers major workflows including authentication, department isolation, submission, approval, rejection, HoD self-submission, bookstore fulfillment, and historical record preservation.
 
-| Feature                  | Description                                              |
-|--------------------------|----------------------------------------------------------|
-| Auth System              | Role-based login/signup, hashed passwords (bcrypt)       |
-| Instructor Dashboard     | Manage textbook forms, submit per course                 |
-| HoD Dashboard            | View, approve/reject instructor forms                    |
-| Bookstore Dashboard      | View only approved forms, initiate ordering              |
-| Course Assignment        | Auto/manual course management                            |
-| Rejection Feedback       | (Future) Attach and display comments on rejected forms   |
-| Database Schema          | Users, Courses, Forms, Departments (future feature)      |
+## Architecture
 
----
+```text
+React Frontend
+      ↓
+Express REST API
+      ↓
+MySQL Database
+```
 
-## 🧱 Data Model Overview
+Core domain structure:
 
-```sql
-users(user_id, name, email, role, department_id, ...)
-courses(course_id, name, instructor_id, department_id)
-forms(form_id, course_id, submitted_by, approved_by, status, feedback, ...)
-departments(department_id, name, hod_id) -- future
+```text
+Department
+├── Users
+├── Courses
+└── Designated HoD
 
+Course
+└── Textbook Requests
 
+Request
+├── Requester
+├── Assigned HoD
+├── Approval Actor
+├── Status
+├── Rejection Feedback
+└── Textbook Snapshot
+```
 
+## Synthetic Demo Dataset
 
+The portfolio version uses synthetic data only.
 
-# Getting Started with Create React App
+The demo environment includes:
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+- 3 departments
+- 13 demo users
+- 12 courses
+- 9 seeded textbook adoption requests
 
-## Available Scripts
+The seeded data covers multiple workflow states, including:
 
-In the project directory, you can run:
+- Pending
+- Approved
+- Rejected
+- Ready to be ordered
+- Ordered
+- Arrived
+- Ready to pick up
 
-### `npm start`
+## Demo Accounts
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+All demo accounts use the password:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```text
+DemoTextbooks!2026
+```
 
-### `npm test`
+### Instructor
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```text
+alice.carter@example.test
+```
 
-### `npm run build`
+### Head of Department
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```text
+david.brooks@example.test
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Bookstore
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```text
+bookstore@example.test
+```
 
-### `npm run eject`
+Additional demo accounts are available in the seed data.
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+## Local Setup
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 1. Clone the Repository
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+```bash
+git clone <repository-url>
+cd textbook-adoption-platform
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### 2. Install Dependencies
 
-## Learn More
+```bash
+npm install
+npm install --prefix backend
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### 3. Configure Environment Variables
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Create a local `.env` file based on `.env.example`.
 
-### Code Splitting
+```env
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USER=your_mysql_user
+DB_PASSWORD=your_mysql_password
+DB_NAME=textbook_adoption_demo
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+JWT_SECRET=your_private_jwt_secret
+```
 
-### Analyzing the Bundle Size
+Do not commit `.env`.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### 4. Initialize the Database
 
-### Making a Progressive Web App
+Create an empty MySQL database, then run:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```bash
+npm run db:init
+```
 
-### Advanced Configuration
+This loads the current schema and synthetic demo seed.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### 5. Start the Application
 
-### Deployment
+```bash
+npm run dev
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## Security
 
-### `npm run build` fails to minify
+The application includes:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- bcrypt password hashing
+- JWT-based authentication
+- backend role authorization
+- department-level access control
+- environment-based secrets
+- production CORS restrictions
+- transactional database operations
+- no production credentials committed to source control
+
+The repository includes `.env.example` only. Actual database credentials and JWT secrets remain private.
+
+## Project Evolution
+
+The project began as a simpler textbook submission MVP and evolved into a more structured role-based workflow.
+
+Major improvements included:
+
+- Moving approval routing to the department level
+- Removing duplicated Instructor-to-HoD relationships
+- Separating reviewer assignment from approval metadata
+- Adding backend role and department authorization
+- Preserving historical textbook submissions
+- Creating a forward-only bookstore fulfillment workflow
+- Adding integration and end-to-end testing
+- Preparing the application for deployment
+
+## MVP Scope
+
+Current functionality includes:
+
+- Role-based authentication
+- Instructor dashboard
+- Head of Department dashboard
+- Bookstore dashboard
+- Department-based routing
+- Approval and rejection workflow
+- Rejection feedback
+- Submission history
+- HoD self-submission
+- Bookstore fulfillment tracking
+- Historical record preservation
+
+## Future Improvements
+
+Future product opportunities include:
+
+- Banner and university IT integration
+- Automated faculty and course synchronization
+- Institutional SSO
+- Email and status notifications
+- Adoption analytics
+- AI-assisted textbook recommendations
+- Historical adoption insights
+- Vendor ordering integrations
+- Administrative reporting
+
+## Portfolio Context
+
+This project was developed as both a software engineering project and a product design exercise.
+
+The work included:
+
+- User and workflow definition
+- Product requirements
+- Database and API design
+- Role-based access rules
+- Approval workflow design
+- Product tradeoff decisions
+- Full-stack implementation
+- Testing
+- Deployment preparation
+
+## Author
+
+**Shovkat Zeynalli**
+
+Solo: Product, Design & Full-Stack Engineering
