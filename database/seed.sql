@@ -1,6 +1,6 @@
 -- PORTFOLIO DEMO ONLY. All people and accounts are synthetic; never load into production.
 -- Load ONCE after schema.sql into a fresh, explicitly selected empty demo/test database.
--- Passwords are stored only as bcrypt cost-10 hashes; see DEMO_SEED_REPORT.md for demo login.
+-- Passwords are stored only as bcrypt cost-10 hashes; see README.md (Demo Access) for demo login.
 -- Dates are deterministic UTC; ISBNs are synthetic checksum-valid demo identifiers.
 SET time_zone = '+00:00';
 START TRANSACTION;

@@ -13,6 +13,8 @@ const faculty = requireRole(['Instructor', 'Head of Department']);
 const authLimit = rateLimit({ windowMs: 15 * 60 * 1000, limit: 100,
  standardHeaders: 'draft-7', legacyHeaders: false, message: { message: 'Too many attempts. Please try again later.' } });
 
+router.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+
 router.post('/api/signup', authLimit, run(async (req, res) => {
  const body = req.body;
  // HoD and Bookstore access is provisioned by the institution, not public registration.

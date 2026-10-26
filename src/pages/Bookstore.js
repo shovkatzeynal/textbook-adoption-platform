@@ -7,6 +7,19 @@ import { useNavigate } from "react-router-dom";
 // ── Status pipeline ─────────────────────────────────────────────────────────
 const STATUSES = ["Approved", "Ready to be ordered", "Ordered", "Arrived", "Ready to pick up", "Picked up"];
 
+// Only show known public API messages, never arbitrary proxy/server diagnostics.
+const SAFE_ORDER_ERRORS = new Set([
+  "Please log in.", "Invalid or expired session. Please log in again.", "Account no longer exists.",
+  "Forbidden.", "Invalid fulfillment status.", "Approved request not found.",
+  "Only the next fulfillment stage is allowed.",
+  "Only an unarchived Picked up request can be archived.",
+  "Unable to complete the request. Please try again.",
+]);
+const orderErrorMessage = (error, fallback) => {
+  const message = error?.response?.data?.message;
+  return typeof message === "string" && SAFE_ORDER_ERRORS.has(message) ? message : fallback;
+};
+
 const STATUS_META = {
   "Approved":            { color: "#1a7a4a", bg: "#EBF7F1", dot: "#1a7a4a" },
   "Ready to be ordered": { color: "#E56515", bg: "#FFF2E5", dot: "#E56515" },
@@ -38,7 +51,7 @@ const Bookstore = () => {
       });
       setForms(res.data.forms || []);
     } catch (err) {
-      setLoadError(err.response?.data?.message || "Unable to load orders. Please try again.");
+      setLoadError(orderErrorMessage(err, "Unable to load orders. Please try again."));
     } finally { setLoading(false); }
   }, [token]);
 
@@ -55,7 +68,7 @@ const Bookstore = () => {
       setForms(prev => prev.map(f => f.request_id === requestId ? { ...f, status: newStatus } : f));
     } catch (err) {
       console.error("Unable to update order status.");
-      alert("Failed to update status.");
+      alert(orderErrorMessage(err, "Failed to update status."));
     } finally { setUpdatingId(null); }
   };
 
@@ -69,7 +82,7 @@ const Bookstore = () => {
       if (expandedId === requestId) setExpandedId(null);
     } catch (err) {
       console.error("Unable to archive order.");
-      alert("Failed to archive order.");
+      alert(orderErrorMessage(err, "Failed to archive order."));
     }
   };
 

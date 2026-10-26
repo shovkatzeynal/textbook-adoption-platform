@@ -23,6 +23,8 @@ const InstructorPage = () => {
   const navigate        = useNavigate();
   const instructorName  = localStorage.getItem("fullName") || "Instructor";
   const firstName       = instructorName.split(" ")[0];
+  const hour            = new Date().getHours();
+  const greeting        = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
   const token           = localStorage.getItem("token");
   const { selectedCourse, setSelectedCourse, formData, setFormData, preFilled, setPreFilled, prefillLoading, prefillError } = useCoursePrefill(token);
   const [historyError, setHistoryError] = useState("");
@@ -201,7 +203,7 @@ const InstructorPage = () => {
           <div style={styles.greeting}>
             <p style={styles.eyebrow}>Instructor Portal</p>
             <h1 style={styles.greetingName}>
-              Good morning, <em style={{ fontStyle: "italic", color: "#E56515" }}>{firstName}.</em>
+              {greeting}, <em style={{ fontStyle: "italic", color: "#E56515" }}>{firstName}.</em>
             </h1>
           </div>
 

@@ -12,6 +12,17 @@ import { useNavigate } from "react-router-dom";
 const SITE_BG = "#F8F8F8";
 // ══════════════════════════════════════════════════════
 
+const APPROVED_STATUSES = new Set([
+  "Approved", "Ready to be ordered", "Ordered", "Arrived", "Ready to pick up", "Picked up",
+]);
+const FULFILLMENT_BADGES = {
+  "Ready to be ordered": { background: "#FFF2E5", color: "#E56515" },
+  "Ordered": { background: "#F3F0FF", color: "#7c5cfc" },
+  "Arrived": { background: "#E0F2FE", color: "#0369a1" },
+  "Ready to pick up": { background: "#FEF3C7", color: "#b45309" },
+  "Picked up": { background: "#F4F4F4", color: "#919599" },
+};
+
 const C = {
   orange:     "#E56515",
   orangeMid:  "#FBA45C",
@@ -280,7 +291,7 @@ const HoDPage = () => {
       if (res.ok) {
         setDeptForms(prev => prev.map(f => f.request_id === formId ? { ...f, status: "Approved" } : f));
         setExpandedIds(prev => { const n = new Set(prev); n.delete(formId); return n; });
-        fetchMySubmissions();
+        await fetchDeptForms();
         toast("Form approved successfully.");
       } else toast(data.message || "Failed to approve.", "error");
     } catch { toast("Error approving form.", "error"); }
@@ -323,7 +334,7 @@ const HoDPage = () => {
   const fmt = (d) => d ? new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) : "";
 
   const pendingForms  = deptForms.filter(f => f.status === "Pending");
-  const approvedForms = deptForms.filter(f => !["Pending", "Rejected"].includes(f.status));
+  const approvedForms = deptForms.filter(f => APPROVED_STATUSES.has(f.status));
   const rejectedForms = deptForms.filter(f => f.status === "Rejected");
 
   const seenIds     = new Set();
@@ -334,10 +345,11 @@ const HoDPage = () => {
   const uniqueTerms = ["All", ...new Set(allTimeline.map(i => i.term).filter(Boolean))];
 
   const filteredTimeline = allTimeline
-    .filter(f => timelineFilter === "All" || f.status === timelineFilter)
+    .filter(f => timelineFilter === "All" || (timelineFilter === "Approved" ? APPROVED_STATUSES.has(f.status) : f.status === timelineFilter))
     .filter(f => termFilter     === "All" || f.term   === termFilter);
 
-  const bdg = (status) => status === "Approved" ? S.bdgA : status === "Rejected" ? S.bdgR : S.bdgP;
+  const bdg = (status) => status === "Approved" ? S.bdgA : status === "Rejected" ? S.bdgR
+    : FULFILLMENT_BADGES[status] ? { ...S.bdgP, ...FULFILLMENT_BADGES[status] } : S.bdgP;
 
   // ── Card bodies ───────────────────────────────────────
   const renderCardBody = () => {
@@ -520,9 +532,6 @@ const HoDPage = () => {
                 onClick={() => setActiveCard(activeCard === key ? null : key)}
               />
             ))}
-            <div style={{ height: 1, background: "rgba(255,255,255,.06)", margin: "6px 0" }} />
-            <NavItem label="Department"    icon="users" active={false} onClick={() => {}} />
-            <NavItem label="Notifications" icon="bell"  active={false} onClick={() => {}} />
           </nav>
           <div style={{ padding: "13px 12px", borderTop: "1px solid rgba(255,255,255,.07)", display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ width: 34, height: 34, borderRadius: 9, background: C.orange, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff" }}>
@@ -547,7 +556,6 @@ const HoDPage = () => {
               <div style={{ fontSize: 12, color: "rgba(255,255,255,.55)", marginTop: 5 }}>Manage your courses &amp; department submissions</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-              <span style={{ background: "rgba(255,255,255,.15)", color: "#fff", border: "1px solid rgba(255,255,255,.25)", borderRadius: 20, padding: "7px 16px", fontSize: 11, fontWeight: 600 }}>Spring 2026</span>
               {!showLogoutConfirm ? (
                 <button onClick={() => setShowLogoutConfirm(true)} style={{ background: "#fff", color: C.orange, border: "none", borderRadius: 8, padding: "9px 18px", fontSize: 12, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">

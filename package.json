@@ -26,9 +26,7 @@
     "test": "react-scripts test",
     "eject": "react-scripts eject",
     "db:init": "node database/init.js",
-    "test:backend": "node --test backend/test/*.test.js",
-    "test:integration": "node --test backend/test/integration.cjs",
-    "test:e2e": "playwright test"
+    "test:integration": "node --test backend/test/integration.cjs"
   },
   "eslintConfig": {
     "extends": [
@@ -54,9 +52,6 @@
       "^react-router$": "<rootDir>/node_modules/react-router/dist/development/index.js",
       "^react-router/dom$": "<rootDir>/node_modules/react-router/dist/development/dom-export.js"
     }
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.63.0"
   },
   "engines": {
     "node": ">=20.0.0"
